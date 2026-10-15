@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Тюнер</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#161920; --line:#262a33; --text:#e8e8ea; --muted:#6b7080;
+    --ok:#4ade80; --warn:#f5b84b;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  main{max-width:560px;margin:0 auto;padding:28px 16px 40px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+  h1{font-size:18px;font-weight:600;margin:0;letter-spacing:.02em}
+  select{
+    appearance:none;-webkit-appearance:none;background:transparent;color:var(--text);
+    border:0;border-bottom:1px solid var(--line);border-radius:0;
+    font:inherit;font-size:15px;padding:4px 18px 4px 2px;cursor:pointer;
+    background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+    background-position:calc(100% - 8px) 55%,calc(100% - 4px) 55%;
+    background-size:4px 4px,4px 4px;background-repeat:no-repeat;
+  }
+  select:focus{outline:none;border-bottom-color:var(--muted)}
+  option{background:#1a1d24;color:var(--text)}
+  #start{
+    width:100%;padding:14px;margin-bottom:18px;background:var(--text);color:var(--bg);
+    border:0;border-radius:10px;font:inherit;font-weight:600;font-size:15px;cursor:pointer;
+  }
+  #start:active{opacity:.85}
+  #msg{color:var(--muted);font-size:13px;min-height:18px;margin:0 0 14px}
+  #msg.err{color:var(--warn)}
+  .legend{
+    display:grid;grid-template-columns:28px 78px 1fr 78px;gap:12px;
+    font-size:11px;color:var(--muted);margin-bottom:6px;
+  }
+  .legend .l{grid-column:3;display:flex;justify-content:space-between}
+  .row{
+    display:grid;grid-template-columns:28px 78px 1fr 78px;gap:12px;align-items:center;
+    padding:14px 0;border-top:1px solid var(--line);
+  }
+  .row:last-child{border-bottom:1px solid var(--line)}
+  .num{
+    width:28px;height:28px;border-radius:50%;border:1px solid var(--line);background:transparent;
+    color:var(--muted);font:inherit;font-size:13px;cursor:pointer;padding:0;
+  }
+  .row.locked .num{border-color:var(--text);color:var(--text)}
+  .track{position:relative;height:28px}
+  .track::before{content:"";position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:var(--line);border-radius:2px}
+  .zone{position:absolute;left:45%;width:10%;top:6px;bottom:6px;border-radius:6px;background:rgba(74,222,128,.10)}
+  .mid{position:absolute;left:50%;top:3px;bottom:3px;width:1px;background:var(--muted);opacity:.6}
+  .thumb{
+    position:absolute;top:50%;left:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;
+    background:var(--text);opacity:.18;transition:left .09s linear,opacity .25s,background .2s,box-shadow .2s;
+  }
+  .row.active .thumb{opacity:1}
+  .row.ok .thumb{background:var(--ok);box-shadow:0 0 14px rgba(74,222,128,.55)}
+  .status{display:flex;flex-direction:column;align-items:flex-end;line-height:1.25;min-height:34px;justify-content:center}
+  .hint{font-size:14px;font-weight:600}
+  .row.ok .hint{color:var(--ok)}
+  .cents{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  footer{margin-top:18px;font-size:12px;line-height:1.5;color:var(--muted)}
+  @media (max-width:400px){
+    .legend,.row{grid-template-columns:24px 70px 1fr 66px;gap:8px}
+    .num{width:24px;height:24px;font-size:12px}
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Гитарный тюнер</h1>
+    <select id="preset" aria-label="Строй"></select>
+  </header>
+
+  <button id="start">Включить микрофон</button>
+  <p id="msg"></p>
+
+  <div class="legend"><div class="l"><span>← нужно выше</span><span>нужно ниже →</span></div></div>
+  <div id="rows"></div>
+
+  <footer>
+    Выбери ноту для каждой струны в списке. Тюнер сам определяет, какую струну ты играешь, по ближайшей целевой ноте.
+    Нажми на номер струны, чтобы закрепить её (повторное нажатие снимает закрепление).
+  </footer>
+</main>
+
+<script>
+(function(){
+  var NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  var MIDI_MIN = 31, MIDI_MAX = 79; // G1 .. G5
+  var PRESETS = {
+    'Стандарт (EADGBE)':  [40,45,50,55,59,64],
+    'Drop D':             [38,45,50,55,59,64],
+    'Полтона вниз':       [39,44,49,54,58,63],
+    'Тон вниз':           [38,43,48,53,57,62],
+    'DADGAD':             [38,45,50,55,57,62],
+    'Open G (DGDGBD)':    [38,43,50,55,59,62]
+  };
+  var STRING_NUMS = [6,5,4,3,2,1];
+
+  function freq(m){ return 440 * Math.pow(2, (m - 69) / 12); }
+  function name(m){ return NAMES[m % 12] + (Math.floor(m / 12) - 1); }
+
+  var targets = (function(){
+    try {
+      var t = JSON.parse(localStorage.getItem('tuner.targets'));
+      if (Array.isArray(t) && t.length === 6 && t.every(function(x){ return typeof x === 'number' && x >= MIDI_MIN && x <= MIDI_MAX; })) return t;
+    } catch(e) {}
+    return PRESETS['Стандарт (EADGBE)'].slice();
+  })();
+  function save(){ try { localStorage.setItem('tuner.targets', JSON.stringify(targets)); } catch(e) {} }
+
+  // ---------- UI ----------
+  var rowsEl = document.getElementById('rows');
+  var presetEl = document.getElementById('preset');
+  var msgEl = document.getElementById('msg');
+  var startBtn = document.getElementById('start');
+  var rows = [];
+  var locked = null;
+
+  function syncPreset(){
+    var found = 'custom';
+    Object.keys(PRESETS).forEach(function(k){
+      if (PRESETS[k].every(function(v, i){ return v === targets[i]; })) found = k;
+    });
+    presetEl.value = found;
+  }
+
+  Object.keys(PRESETS).forEach(function(k){
+    var o = document.createElement('option'); o.value = k; o.textContent = k; presetEl.appendChild(o);
+  });
+  var custom = document.createElement('option'); custom.value = 'custom'; custom.textContent = 'Свой строй'; presetEl.appendChild(custom);
+
+  presetEl.addEventListener('change', function(){
+    if (presetEl.value === 'custom') return;
+    targets = PRESETS[presetEl.value].slice();
+    rows.forEach(function(r, i){ r.select.value = targets[i]; });
+    save();
+  });
+
+  STRING_NUMS.forEach(function(n, i){
+    var el = document.createElement('div');
+    el.className = 'row';
+    el.innerHTML =
+      '<button class="num" title="Закрепить струну">' + n + '</button>' +
+      '<select class="note" aria-label="Нота струны ' + n + '"></select>' +
+      '<div class="track"><div class="zone"></div><div class="mid"></div><div class="thumb"></div></div>' +
+      '<div class="status"><span class="hint"></span><span class="cents"></span></div>';
+    var sel = el.querySelector('select');
+    for (var m = MIDI_MIN; m <= MIDI_MAX; m++){
+      var o = document.createElement('option'); o.value = m; o.textContent = name(m); sel.appendChild(o);
+    }
+    sel.value = targets[i];
+    sel.addEventListener('change', function(){
+      targets[i] = parseInt(sel.value, 10);
+      syncPreset(); save();
+    });
+    el.querySelector('.num').addEventListener('click', function(){
+      locked = (locked === i) ? null : i;
+      rows.forEach(function(r, j){ r.el.classList.toggle('locked', locked === j); });
+    });
+    rowsEl.appendChild(el);
+    rows.push({
+      el: el, select: sel,
+      thumb: el.querySelector('.thumb'),
+      hint: el.querySelector('.hint'),
+      cents: el.querySelector('.cents')
+    });
+  });
+  syncPreset();
+
+  function showRow(r, cents){
+    var c = Math.max(-50, Math.min(50, cents));
+    r.thumb.style.left = (50 + c) + '%';
+    r.el.classList.add('active');
+    var ok = Math.abs(cents) <= 5;
+    r.el.classList.toggle('ok', ok);
+    r.hint.textContent = ok ? 'в строю' : (cents > 0 ? 'ниже ↓' : 'выше ↑');
+    r.cents.textContent = (cents > 0 ? '+' : '') + Math.round(cents) + '¢';
+  }
+  function idleRow(r){
+    r.thumb.style.left = '50%';
+    r.el.classList.remove('active', 'ok');
+    r.hint.textContent = '';
+    r.cents.textContent = '';
+  }
+
+  // ---------- Pitch detection (YIN) ----------
+  function detectPitch(buf, sr){
+    var half = buf.length >> 1;
+    var tauMax = Math.min(half - 2, Math.floor(sr / 60));
+    var tauMin = Math.max(2, Math.floor(sr / 1000));
+    var d = new Float32Array(tauMax + 2);
+    var tau, i, s, x;
+    for (tau = 1; tau <= tauMax; tau++){
+      s = 0;
+      for (i = 0; i < half; i++){ x = buf[i] - buf[i + tau]; s += x * x; }
+      d[tau] = s;
+    }
+    var run = 0; d[0] = 1;
+    for (tau = 1; tau <= tauMax; tau++){
+      run += d[tau];
+      d[tau] = run > 0 ? d[tau] * tau / run : 1;
+    }
+    tau = tauMin;
+    while (tau < tauMax){
+      if (d[tau] < 0.12){
+        while (tau + 1 < tauMax && d[tau + 1] < d[tau]) tau++;
+        var a = d[tau - 1], b = d[tau], c = d[tau + 1];
+        var den = a + c - 2 * b;
+        var shift = den ? (a - c) / (2 * den) : 0;
+        return sr / (tau + shift);
+      }
+      tau++;
+    }
+    return null;
+  }
+
+  // ---------- Audio ----------
+  var ctx, analyser, buf, timer = null;
+  var lastHeard = 0, prevRow = -1, smooth = 0;
+
+  function tick(){
+    analyser.getFloatTimeDomainData(buf);
+    var sum = 0, i;
+    for (i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+    var rms = Math.sqrt(sum / buf.length);
+    var f = rms > 0.008 ? detectPitch(buf, ctx.sampleRate) : null;
+    var now = performance.now();
+
+    if (f){
+      var row = locked, cents;
+      if (row === null){
+        var best = Infinity;
+        targets.forEach(function(m, j){
+          var c = 1200 * Math.log(f / freq(m)) / Math.LN2;
+          if (Math.abs(c) < best){ best = Math.abs(c); row = j; cents = c; }
+        });
+      } else {
+        cents = 1200 * Math.log(f / freq(targets[row])) / Math.LN2;
+        cents = ((cents + 600) % 1200 + 1200) % 1200 - 600; // fold octaves when a string is locked
+      }
+      if (row === prevRow && now - lastHeard < 500) smooth = smooth * 0.55 + cents * 0.45;
+      else smooth = cents;
+      prevRow = row; lastHeard = now;
+      rows.forEach(function(r, j){ if (j === row) showRow(r, smooth); else idleRow(r); });
+    } else if (now - lastHeard > 1500){
+      prevRow = -1;
+      rows.forEach(idleRow);
+    }
+  }
+
+  startBtn.addEventListener('click', function(){
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      msgEl.className = 'err';
+      msgEl.textContent = 'Браузер не даёт доступ к микрофону. Открой страницу по https:// или в Chrome/Firefox.';
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+    }).then(function(stream){
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var src = ctx.createMediaStreamSource(stream);
+      analyser = ctx.createAnalyser();
+      analyser.fftSize = 4096;
+      buf = new Float32Array(analyser.fftSize);
+      src.connect(analyser);
+      timer = setInterval(tick, 50);
+      startBtn.style.display = 'none';
+      msgEl.className = '';
+      msgEl.textContent = 'Слушаю. Играй открытую струну.';
+    }).catch(function(){
+      msgEl.className = 'err';
+      msgEl.textContent = 'Нет доступа к микрофону. Разреши его в настройках браузера и попробуй снова.';
+    });
+  });
+})();
+</script>
+</body>
+</html>
