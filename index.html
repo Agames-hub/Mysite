@@ -2,175 +2,310 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
 <title>Тюнер</title>
+<script>
+(function(){
+  var t = null;
+  try { t = localStorage.getItem('tuner.theme'); } catch(e) {}
+  if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
 <style>
   :root{
-    --bg:#0f1115; --panel:#161920; --line:#262a33; --text:#e8e8ea; --muted:#6b7080;
-    --ok:#4ade80; --warn:#f5b84b;
+    --bg:#f4f4f5; --field:#e8e8ea; --text:#18181b; --muted:#9a9aa3;
+    --ok:#16a34a; --okbg:rgba(22,163,74,.18); --warn:#d97706; --on-text:#f4f4f5; --shade:rgba(0,0,0,.28);
   }
-  *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--text);
+  :root[data-theme="dark"]{
+    --bg:#0f1115; --field:#1a1d25; --text:#ececee; --muted:#6b7080;
+    --ok:#4ade80; --okbg:rgba(74,222,128,.16); --warn:#f5b84b; --on-text:#0f1115; --shade:rgba(0,0,0,.55);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--text);
+    transition:background .35s,color .35s;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-  main{max-width:560px;margin:0 auto;padding:28px 16px 40px}
-  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
-  h1{font-size:18px;font-weight:600;margin:0;letter-spacing:.02em}
+  main{
+    height:100dvh;max-width:520px;margin:0 auto;display:flex;flex-direction:column;
+    padding:calc(12px + env(safe-area-inset-top,0px)) 16px calc(14px + env(safe-area-inset-bottom,0px));
+  }
+  header{display:flex;align-items:center;gap:10px;flex:none;margin-bottom:8px}
+  .sp{flex:1}
+
   select{
-    appearance:none;-webkit-appearance:none;background:transparent;color:var(--text);
-    border:0;border-bottom:1px solid var(--line);border-radius:0;
-    font:inherit;font-size:15px;padding:4px 18px 4px 2px;cursor:pointer;
+    appearance:none;-webkit-appearance:none;border:0;color:var(--text);font:inherit;font-weight:600;cursor:pointer;
+    background-color:var(--field);border-radius:12px;height:38px;padding:0 26px 0 12px;min-width:0;
     background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
-    background-position:calc(100% - 8px) 55%,calc(100% - 4px) 55%;
+    background-position:calc(100% - 14px) 50%,calc(100% - 10px) 50%;
     background-size:4px 4px,4px 4px;background-repeat:no-repeat;
+    transition:background-color .35s;
   }
-  select:focus{outline:none;border-bottom-color:var(--muted)}
-  option{background:#1a1d24;color:var(--text)}
-  #start{
-    width:100%;padding:14px;margin-bottom:18px;background:var(--text);color:var(--bg);
-    border:0;border-radius:10px;font:inherit;font-weight:600;font-size:15px;cursor:pointer;
+  option{background:var(--bg);color:var(--text)}
+  #preset{font-size:15px;max-width:190px}
+
+  .ib{
+    position:relative;width:44px;height:44px;border-radius:50%;border:0;background:var(--field);
+    color:var(--text);cursor:pointer;padding:0;overflow:hidden;flex:none;
+    transition:transform .5s cubic-bezier(.3,1.6,.5,1),background .35s;
   }
-  #start:active{opacity:.85}
-  #msg{color:var(--muted);font-size:13px;min-height:18px;margin:0 0 14px}
-  #msg.err{color:var(--warn)}
-  .legend{
-    display:grid;grid-template-columns:28px 78px 1fr 78px;gap:12px;
-    font-size:11px;color:var(--muted);margin-bottom:6px;
-  }
-  .legend .l{grid-column:3;display:flex;justify-content:space-between}
+  .ib:active{transform:scale(.85) rotate(-25deg)}
+  .ib svg{position:absolute;inset:0;margin:auto;width:22px;height:22px;
+    transition:transform .6s cubic-bezier(.3,1.4,.5,1),opacity .3s}
+  #theme .sun{transform:rotate(0) scale(1);opacity:1}
+  #theme .moon{transform:rotate(-90deg) scale(.3);opacity:0}
+  :root[data-theme="dark"] #theme .sun{transform:rotate(90deg) scale(.3);opacity:0}
+  :root[data-theme="dark"] #theme .moon{transform:rotate(0) scale(1);opacity:1}
+  #gear.open svg{transform:rotate(90deg)}
+
+  #rows{flex:1 1 0;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:4px}
   .row{
-    display:grid;grid-template-columns:28px 78px 1fr 78px;gap:12px;align-items:center;
-    padding:14px 0;border-top:1px solid var(--line);
+    flex:1 1 0;min-height:0;max-height:56px;display:grid;grid-template-columns:22px 58px 1fr 34px;
+    gap:8px;align-items:center;
   }
-  .row:last-child{border-bottom:1px solid var(--line)}
-  .num{
-    width:28px;height:28px;border-radius:50%;border:1px solid var(--line);background:transparent;
-    color:var(--muted);font:inherit;font-size:13px;cursor:pointer;padding:0;
-  }
-  .row.locked .num{border-color:var(--text);color:var(--text)}
-  .track{position:relative;height:28px}
-  .track::before{content:"";position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:var(--line);border-radius:2px}
-  .zone{position:absolute;left:45%;width:10%;top:6px;bottom:6px;border-radius:6px;background:rgba(74,222,128,.10)}
-  .mid{position:absolute;left:50%;top:3px;bottom:3px;width:1px;background:var(--muted);opacity:.6}
+  .num{text-align:center;color:var(--muted);font-size:14px;font-weight:600}
+  .note{font-size:14px;width:58px;height:30px;padding:0 16px 0 8px;border-radius:10px;background-position:calc(100% - 10px) 50%,calc(100% - 6px) 50%}
+
+  .track{position:relative;height:10px;margin:0 10px;border-radius:5px;background:var(--field);transition:background-color .35s}
+  .zone{position:absolute;left:44%;width:12%;top:-6px;bottom:-6px;border-radius:8px;background:var(--okbg)}
+  .mid{position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--muted);opacity:.4;border-radius:2px}
   .thumb{
-    position:absolute;top:50%;left:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;
-    background:var(--text);opacity:.18;transition:left .09s linear,opacity .25s,background .2s,box-shadow .2s;
+    position:absolute;top:50%;left:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;
+    background:var(--text);opacity:.14;transition:left .09s linear,opacity .25s,background .2s;
   }
   .row.active .thumb{opacity:1}
-  .row.ok .thumb{background:var(--ok);box-shadow:0 0 14px rgba(74,222,128,.55)}
-  .status{display:flex;flex-direction:column;align-items:flex-end;line-height:1.25;min-height:34px;justify-content:center}
-  .hint{font-size:14px;font-weight:600}
+  .row.ok .thumb{background:var(--ok)}
+
+  .status{display:flex;flex-direction:column;align-items:flex-end;line-height:1.1;font-variant-numeric:tabular-nums}
+  .hint{font-size:18px;font-weight:700}
   .row.ok .hint{color:var(--ok)}
-  .cents{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
-  footer{margin-top:18px;font-size:12px;line-height:1.5;color:var(--muted)}
-  @media (max-width:400px){
-    .legend,.row{grid-template-columns:24px 70px 1fr 66px;gap:8px}
-    .num{width:24px;height:24px;font-size:12px}
+  .cents{font-size:10px;color:var(--muted)}
+
+  .dock{position:relative;flex:none;display:flex;justify-content:center;padding-top:8px}
+  #msg{position:absolute;left:0;right:0;bottom:100%;margin:0 0 2px;text-align:center;color:var(--warn);font-size:12px;pointer-events:none}
+  #mic{
+    position:relative;width:60px;height:60px;border-radius:50%;border:0;background:var(--field);color:var(--text);
+    cursor:pointer;padding:0;display:grid;place-items:center;
+    transition:background .25s,color .25s,transform .2s;
+  }
+  #mic:active{transform:scale(.9)}
+  #mic svg{width:28px;height:28px}
+  #mic .slash{transition:opacity .2s}
+  #mic.on{background:var(--ok);color:#06120a}
+  #mic.on .slash{opacity:0}
+  #mic::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--ok);opacity:0;pointer-events:none}
+  #mic.on::after{animation:ring 1.6s ease-out infinite}
+  @keyframes ring{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.6);opacity:0}}
+
+  /* настройки */
+  #sheet{position:fixed;inset:0;display:flex;align-items:flex-end;justify-content:center;
+    background:transparent;visibility:hidden;transition:background .3s,visibility 0s .3s}
+  #sheet.open{background:var(--shade);visibility:visible;transition:background .3s}
+  .panel{
+    width:100%;max-width:520px;background:var(--bg);border-radius:26px 26px 0 0;
+    padding:22px 18px calc(22px + env(safe-area-inset-bottom,0px));
+    display:flex;flex-direction:column;gap:18px;
+    transform:translateY(100%);transition:transform .35s cubic-bezier(.3,1,.4,1),background .35s;
+  }
+  #sheet.open .panel{transform:none}
+  .set{display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .set span{font-size:15px;font-weight:600}
+  .seg{display:flex;background:var(--field);border-radius:14px;padding:3px;gap:3px}
+  .seg button{
+    min-width:56px;height:38px;padding:0 14px;border:0;border-radius:11px;background:transparent;
+    color:var(--muted);font:inherit;font-size:15px;font-weight:600;cursor:pointer;
+    transition:background .2s,color .2s;
+  }
+  .seg button.on{background:var(--text);color:var(--on-text)}
+
+  select:focus-visible,button:focus-visible{outline:2px solid var(--muted);outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){
+    *,*::after{animation:none!important;transition-duration:.01ms!important}
   }
 </style>
 </head>
 <body>
 <main>
   <header>
-    <h1>Гитарный тюнер</h1>
     <select id="preset" aria-label="Строй"></select>
+    <div class="sp"></div>
+    <button id="gear" class="ib" aria-label="Настройки">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M4 7h9M19 7h1M4 17h1M11 17h9"/>
+        <circle cx="16" cy="7" r="2.5" fill="currentColor"/>
+        <circle cx="8" cy="17" r="2.5" fill="currentColor"/>
+      </svg>
+    </button>
+    <button id="theme" class="ib" aria-label="Тема">
+      <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="4.5" fill="currentColor"/>
+        <path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/>
+      </svg>
+      <svg class="moon" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"/>
+      </svg>
+    </button>
   </header>
 
-  <button id="start">Включить микрофон</button>
-  <p id="msg"></p>
-
-  <div class="legend"><div class="l"><span>← нужно выше</span><span>нужно ниже →</span></div></div>
   <div id="rows"></div>
 
-  <footer>
-    Выбери ноту для каждой струны в списке. Тюнер сам определяет, какую струну ты играешь, по ближайшей целевой ноте.
-    Нажми на номер струны, чтобы закрепить её (повторное нажатие снимает закрепление).
-  </footer>
+  <div class="dock">
+    <p id="msg"></p>
+    <button id="mic" aria-label="Микрофон" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="2.5" width="6" height="12" rx="3" fill="currentColor"/>
+        <path d="M5 11.5a7 7 0 0 0 14 0M12 18.5V22"/>
+        <path class="slash" d="M3.5 3.5l17 17"/>
+      </svg>
+    </button>
+  </div>
 </main>
+
+<div id="sheet">
+  <div class="panel">
+    <div class="set"><span>Струны</span>
+      <div class="seg" id="segCount"><button data-v="6">6</button><button data-v="7">7</button><button data-v="8">8</button></div>
+    </div>
+    <div class="set"><span>Строи</span>
+      <div class="seg" id="segLabels"><button data-v="letters">EADGBE</button><button data-v="names">Имена</button></div>
+    </div>
+  </div>
+</div>
 
 <script>
 (function(){
   var NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-  var MIDI_MIN = 31, MIDI_MAX = 79; // G1 .. G5
-  var PRESETS = {
-    'Стандарт (EADGBE)':  [40,45,50,55,59,64],
-    'Drop D':             [38,45,50,55,59,64],
-    'Полтона вниз':       [39,44,49,54,58,63],
-    'Тон вниз':           [38,43,48,53,57,62],
-    'DADGAD':             [38,45,50,55,57,62],
-    'Open G (DGDGBD)':    [38,43,50,55,59,62]
+  var MIDI_MIN = 28, MIDI_MAX = 79;
+
+  // [имя или null, ноты от низкой струны к высокой]
+  var DATA = {
+    6: [
+      ['Стандарт',      [40,45,50,55,59,64]],
+      ['Drop D',        [38,45,50,55,59,64]],
+      ['Double Drop D', [38,45,50,55,59,62]],
+      [null,            [40,45,50,55,59,62]],
+      ['Полтона вниз',  [39,44,49,54,58,63]],
+      ['Тон вниз',      [38,43,48,53,57,62]],
+      ['Drop C',        [36,43,48,53,57,62]],
+      ['Баритон B',     [35,40,45,50,54,59]],
+      ['Квартовый',     [40,45,50,55,60,65]],
+      ['DADGAD',        [38,45,50,55,57,62]],
+      [null,            [38,45,50,53,57,62]],
+      [null,            [36,43,48,55,60,62]],
+      [null,            [36,43,50,55,57,62]],
+      [null,            [36,43,50,55,59,62]],
+      ['Open G',        [38,43,50,55,59,62]],
+      ['Open Gm',       [38,43,50,55,58,62]],
+      ['Open D',        [38,45,50,54,57,62]],
+      ['Open E',        [40,47,52,56,59,64]],
+      ['Open A',        [40,45,52,57,61,64]],
+      [null,            [38,45,52,57,61,64]],
+      ['Open C',        [36,43,48,55,60,64]],
+      ['Open F',        [41,45,48,53,60,65]]
+    ],
+    7: [
+      ['Стандарт',     [35,40,45,50,55,59,64]],
+      ['Drop A',       [33,40,45,50,55,59,64]],
+      ['Полтона вниз', [34,39,44,49,54,58,63]],
+      ['Тон вниз',     [33,38,43,48,53,57,62]],
+      [null,           [33,38,45,50,55,57,62]]
+    ],
+    8: [
+      ['Стандарт',     [30,35,40,45,50,55,59,64]],
+      ['Drop E',       [28,35,40,45,50,55,59,64]],
+      ['Полтона вниз', [29,34,39,44,49,54,58,63]],
+      ['Тон вниз',     [28,33,38,43,48,53,57,62]]
+    ]
   };
-  var STRING_NUMS = [6,5,4,3,2,1];
 
   function freq(m){ return 440 * Math.pow(2, (m - 69) / 12); }
   function name(m){ return NAMES[m % 12] + (Math.floor(m / 12) - 1); }
+  function letters(a){ return a.map(function(m){ return NAMES[m % 12]; }).join(''); }
+  function get(k){ try { return localStorage.getItem(k); } catch(e) { return null; } }
+  function put(k, v){ try { localStorage.setItem(k, v); } catch(e) {} }
 
-  var targets = (function(){
+  // ---------- Theme ----------
+  var root = document.documentElement;
+  document.getElementById('theme').addEventListener('click', function(){
+    var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    put('tuner.theme', next);
+  });
+
+  // ---------- State ----------
+  var count = parseInt(get('tuner.count'), 10);
+  if (!DATA[count]) count = 6;
+  var labelMode = get('tuner.labels') === 'names' ? 'names' : 'letters';
+  var targets = [];
+
+  function loadTargets(){
     try {
-      var t = JSON.parse(localStorage.getItem('tuner.targets'));
-      if (Array.isArray(t) && t.length === 6 && t.every(function(x){ return typeof x === 'number' && x >= MIDI_MIN && x <= MIDI_MAX; })) return t;
+      var t = JSON.parse(get('tuner.targets.' + count));
+      if (Array.isArray(t) && t.length === count && t.every(function(x){ return typeof x === 'number' && x >= MIDI_MIN && x <= MIDI_MAX; })) return t;
     } catch(e) {}
-    return PRESETS['Стандарт (EADGBE)'].slice();
-  })();
-  function save(){ try { localStorage.setItem('tuner.targets', JSON.stringify(targets)); } catch(e) {} }
+    return DATA[count][0][1].slice();
+  }
+  function save(){ put('tuner.targets.' + count, JSON.stringify(targets)); }
 
   // ---------- UI ----------
   var rowsEl = document.getElementById('rows');
   var presetEl = document.getElementById('preset');
   var msgEl = document.getElementById('msg');
-  var startBtn = document.getElementById('start');
+  var micBtn = document.getElementById('mic');
   var rows = [];
-  var locked = null;
 
+  function label(p){ return (labelMode === 'names' && p[0]) ? p[0] : letters(p[1]); }
+
+  function buildPreset(){
+    presetEl.innerHTML = '';
+    DATA[count].forEach(function(p, k){
+      var o = document.createElement('option'); o.value = k; o.textContent = label(p); presetEl.appendChild(o);
+    });
+    var c = document.createElement('option'); c.value = 'custom'; c.textContent = 'Свой'; presetEl.appendChild(c);
+  }
   function syncPreset(){
     var found = 'custom';
-    Object.keys(PRESETS).forEach(function(k){
-      if (PRESETS[k].every(function(v, i){ return v === targets[i]; })) found = k;
+    DATA[count].forEach(function(p, k){
+      if (p[1].every(function(v, i){ return v === targets[i]; })) found = k;
     });
     presetEl.value = found;
   }
-
-  Object.keys(PRESETS).forEach(function(k){
-    var o = document.createElement('option'); o.value = k; o.textContent = k; presetEl.appendChild(o);
-  });
-  var custom = document.createElement('option'); custom.value = 'custom'; custom.textContent = 'Свой строй'; presetEl.appendChild(custom);
-
   presetEl.addEventListener('change', function(){
     if (presetEl.value === 'custom') return;
-    targets = PRESETS[presetEl.value].slice();
+    targets = DATA[count][parseInt(presetEl.value, 10)][1].slice();
     rows.forEach(function(r, i){ r.select.value = targets[i]; });
     save();
   });
 
-  STRING_NUMS.forEach(function(n, i){
-    var el = document.createElement('div');
-    el.className = 'row';
-    el.innerHTML =
-      '<button class="num" title="Закрепить струну">' + n + '</button>' +
-      '<select class="note" aria-label="Нота струны ' + n + '"></select>' +
-      '<div class="track"><div class="zone"></div><div class="mid"></div><div class="thumb"></div></div>' +
-      '<div class="status"><span class="hint"></span><span class="cents"></span></div>';
-    var sel = el.querySelector('select');
-    for (var m = MIDI_MIN; m <= MIDI_MAX; m++){
-      var o = document.createElement('option'); o.value = m; o.textContent = name(m); sel.appendChild(o);
-    }
-    sel.value = targets[i];
-    sel.addEventListener('change', function(){
-      targets[i] = parseInt(sel.value, 10);
-      syncPreset(); save();
+  function buildRows(){
+    rowsEl.innerHTML = '';
+    rows = [];
+    targets.forEach(function(t, i){
+      var el = document.createElement('div');
+      el.className = 'row';
+      el.innerHTML =
+        '<span class="num">' + (count - i) + '</span>' +
+        '<select class="note" aria-label="Нота струны ' + (count - i) + '"></select>' +
+        '<div class="track"><div class="zone"></div><div class="mid"></div><div class="thumb"></div></div>' +
+        '<div class="status"><span class="hint"></span><span class="cents"></span></div>';
+      var sel = el.querySelector('select');
+      for (var m = MIDI_MIN; m <= MIDI_MAX; m++){
+        var o = document.createElement('option'); o.value = m; o.textContent = name(m); sel.appendChild(o);
+      }
+      sel.value = t;
+      sel.addEventListener('change', function(){
+        targets[i] = parseInt(sel.value, 10);
+        syncPreset(); save();
+      });
+      rowsEl.appendChild(el);
+      rows.push({
+        el: el, select: sel,
+        thumb: el.querySelector('.thumb'),
+        hint: el.querySelector('.hint'),
+        cents: el.querySelector('.cents')
+      });
     });
-    el.querySelector('.num').addEventListener('click', function(){
-      locked = (locked === i) ? null : i;
-      rows.forEach(function(r, j){ r.el.classList.toggle('locked', locked === j); });
-    });
-    rowsEl.appendChild(el);
-    rows.push({
-      el: el, select: sel,
-      thumb: el.querySelector('.thumb'),
-      hint: el.querySelector('.hint'),
-      cents: el.querySelector('.cents')
-    });
-  });
-  syncPreset();
+  }
 
   function showRow(r, cents){
     var c = Math.max(-50, Math.min(50, cents));
@@ -178,8 +313,8 @@
     r.el.classList.add('active');
     var ok = Math.abs(cents) <= 5;
     r.el.classList.toggle('ok', ok);
-    r.hint.textContent = ok ? 'в строю' : (cents > 0 ? 'ниже ↓' : 'выше ↑');
-    r.cents.textContent = (cents > 0 ? '+' : '') + Math.round(cents) + '¢';
+    r.hint.textContent = ok ? '✓' : (cents > 0 ? '↓' : '↑');
+    r.cents.textContent = (cents > 0 ? '+' : '') + Math.round(cents);
   }
   function idleRow(r){
     r.thumb.style.left = '50%';
@@ -188,10 +323,41 @@
     r.cents.textContent = '';
   }
 
+  // ---------- Settings ----------
+  var sheet = document.getElementById('sheet');
+  var gear = document.getElementById('gear');
+  var segCount = document.getElementById('segCount');
+  var segLabels = document.getElementById('segLabels');
+
+  function markSeg(seg, v){
+    Array.prototype.forEach.call(seg.children, function(b){ b.classList.toggle('on', b.getAttribute('data-v') === String(v)); });
+  }
+  function toggleSheet(open){
+    sheet.classList.toggle('open', open);
+    gear.classList.toggle('open', open);
+  }
+  gear.addEventListener('click', function(){ toggleSheet(!sheet.classList.contains('open')); });
+  sheet.addEventListener('click', function(e){ if (e.target === sheet) toggleSheet(false); });
+
+  segCount.addEventListener('click', function(e){
+    var v = parseInt(e.target.getAttribute('data-v'), 10);
+    if (!DATA[v] || v === count) return;
+    count = v; put('tuner.count', v);
+    targets = loadTargets();
+    prevRow = -1;
+    buildPreset(); buildRows(); syncPreset(); markSeg(segCount, v);
+  });
+  segLabels.addEventListener('click', function(e){
+    var v = e.target.getAttribute('data-v');
+    if (v !== 'letters' && v !== 'names' || v === labelMode) return;
+    labelMode = v; put('tuner.labels', v);
+    buildPreset(); syncPreset(); markSeg(segLabels, v);
+  });
+
   // ---------- Pitch detection (YIN) ----------
   function detectPitch(buf, sr){
     var half = buf.length >> 1;
-    var tauMax = Math.min(half - 2, Math.floor(sr / 60));
+    var tauMax = Math.min(half - 2, Math.floor(sr / 40));
     var tauMin = Math.max(2, Math.floor(sr / 1000));
     var d = new Float32Array(tauMax + 2);
     var tau, i, s, x;
@@ -220,7 +386,7 @@
   }
 
   // ---------- Audio ----------
-  var ctx, analyser, buf, timer = null;
+  var ctx = null, analyser, buf, stream = null, timer = null, busy = false;
   var lastHeard = 0, prevRow = -1, smooth = 0;
 
   function tick(){
@@ -232,17 +398,11 @@
     var now = performance.now();
 
     if (f){
-      var row = locked, cents;
-      if (row === null){
-        var best = Infinity;
-        targets.forEach(function(m, j){
-          var c = 1200 * Math.log(f / freq(m)) / Math.LN2;
-          if (Math.abs(c) < best){ best = Math.abs(c); row = j; cents = c; }
-        });
-      } else {
-        cents = 1200 * Math.log(f / freq(targets[row])) / Math.LN2;
-        cents = ((cents + 600) % 1200 + 1200) % 1200 - 600; // fold octaves when a string is locked
-      }
+      var row = 0, cents = 0, best = Infinity;
+      targets.forEach(function(m, j){
+        var c = 1200 * Math.log(f / freq(m)) / Math.LN2;
+        if (Math.abs(c) < best){ best = Math.abs(c); row = j; cents = c; }
+      });
       if (row === prevRow && now - lastHeard < 500) smooth = smooth * 0.55 + cents * 0.45;
       else smooth = cents;
       prevRow = row; lastHeard = now;
@@ -253,30 +413,55 @@
     }
   }
 
-  startBtn.addEventListener('click', function(){
+  function setOn(on){
+    micBtn.classList.toggle('on', on);
+    micBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  function stop(){
+    if (timer){ clearInterval(timer); timer = null; }
+    if (stream){ stream.getTracks().forEach(function(t){ t.stop(); }); stream = null; }
+    if (ctx){ try { ctx.close(); } catch(e) {} ctx = null; }
+    prevRow = -1;
+    rows.forEach(idleRow);
+    setOn(false);
+  }
+
+  function start(){
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-      msgEl.className = 'err';
-      msgEl.textContent = 'Браузер не даёт доступ к микрофону. Открой страницу по https:// или в Chrome/Firefox.';
+      msgEl.textContent = 'Нужен https://';
       return;
     }
+    busy = true;
     navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
-    }).then(function(stream){
+    }).then(function(s){
+      stream = s;
       ctx = new (window.AudioContext || window.webkitAudioContext)();
-      var src = ctx.createMediaStreamSource(stream);
+      var src = ctx.createMediaStreamSource(s);
       analyser = ctx.createAnalyser();
       analyser.fftSize = 4096;
       buf = new Float32Array(analyser.fftSize);
       src.connect(analyser);
       timer = setInterval(tick, 50);
-      startBtn.style.display = 'none';
-      msgEl.className = '';
-      msgEl.textContent = 'Слушаю. Играй открытую струну.';
+      msgEl.textContent = '';
+      setOn(true);
+      busy = false;
     }).catch(function(){
-      msgEl.className = 'err';
-      msgEl.textContent = 'Нет доступа к микрофону. Разреши его в настройках браузера и попробуй снова.';
+      msgEl.textContent = 'Нет доступа к микрофону';
+      busy = false;
     });
+  }
+
+  micBtn.addEventListener('click', function(){
+    if (busy) return;
+    if (stream) stop(); else start();
   });
+
+  // ---------- Init ----------
+  targets = loadTargets();
+  buildPreset(); buildRows(); syncPreset();
+  markSeg(segCount, count); markSeg(segLabels, labelMode);
 })();
 </script>
 </body>
