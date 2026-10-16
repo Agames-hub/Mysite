@@ -4,23 +4,41 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<title>Тюнер</title>
+<title>Гитарный тюнер онлайн: настроить гитару через микрофон</title>
+<meta name="description" content="Бесплатный гитарный тюнер онлайн. Настройка 6, 7 и 8-струнной гитары через микрофон телефона или компьютера: стандартный строй, Drop D, DADGAD, Open G и другие.">
+<meta name="theme-color" content="#f4f4f5">
+<meta name="robots" content="index,follow">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="Гитарный тюнер онлайн">
+<meta property="og:description" content="Бесплатный тюнер для гитары через микрофон: 6, 7 и 8 струн, популярные строи.">
+<meta property="og:image" content="icon-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Тюнер">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Гитарный тюнер","applicationCategory":"MusicApplication","operatingSystem":"Any","inLanguage":"ru","description":"Бесплатный гитарный тюнер онлайн через микрофон","offers":{"@type":"Offer","price":"0","priceCurrency":"RUB"}}</script>
 <script>
 (function(){
   var t = null;
   try { t = localStorage.getItem('tuner.theme'); } catch(e) {}
   if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   document.documentElement.setAttribute('data-theme', t);
+  var m = document.querySelector('meta[name=theme-color]');
+  if (m) m.setAttribute('content', t === 'dark' ? '#0f1115' : '#f4f4f5');
 })();
 </script>
 <style>
   :root{
-    --bg:#f4f4f5; --field:#e8e8ea; --text:#18181b; --muted:#9a9aa3;
-    --ok:#16a34a; --okbg:rgba(22,163,74,.18); --warn:#d97706; --on-text:#f4f4f5; --shade:rgba(0,0,0,.28);
+    --bg:#f4f4f5; --page:#e6e6e9; --field:#e8e8ea; --text:#18181b; --muted:#9a9aa3;
+    --ok:#16a34a; --okbg:rgba(22,163,74,.18); --warn:#d97706; --on-text:#f4f4f5; --shade-o:.28;
   }
   :root[data-theme="dark"]{
-    --bg:#0f1115; --field:#1a1d25; --text:#ececee; --muted:#6b7080;
-    --ok:#4ade80; --okbg:rgba(74,222,128,.16); --warn:#f5b84b; --on-text:#0f1115; --shade:rgba(0,0,0,.55);
+    --bg:#0f1115; --page:#08090c; --field:#1a1d25; --text:#ececee; --muted:#6b7080;
+    --ok:#4ade80; --okbg:rgba(74,222,128,.16); --warn:#f5b84b; --on-text:#0f1115; --shade-o:.55;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--text);
@@ -58,7 +76,7 @@
   :root[data-theme="dark"] #theme .moon{transform:rotate(0) scale(1);opacity:1}
   #gear.open svg{transform:rotate(90deg)}
 
-  #rows{flex:1 1 0;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:4px}
+  #rows{flex:1 1 0;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:var(--g,16px);transition:gap .3s}
   .row{
     flex:1 1 0;min-height:0;max-height:56px;display:grid;grid-template-columns:22px 58px 1fr 34px;
     gap:8px;align-items:center;
@@ -97,12 +115,18 @@
   #mic.on::after{animation:ring 1.6s ease-out infinite}
   @keyframes ring{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.6);opacity:0}}
 
+  .ad{flex:none;height:60px;margin-top:10px}
+  .more{align-self:flex-start;color:var(--muted);font-size:14px;text-decoration:none}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
   /* настройки */
   #sheet{position:fixed;inset:0;display:flex;align-items:flex-end;justify-content:center;
-    background:transparent;visibility:hidden;transition:background .3s,visibility 0s .3s}
-  #sheet.open{background:var(--shade);visibility:visible;transition:background .3s}
+    visibility:hidden;transition:visibility 0s .3s}
+  #sheet.open{visibility:visible;transition:none}
+  .backdrop{position:absolute;inset:0;background:#000;opacity:0;transition:opacity .3s;will-change:opacity}
+  #sheet.open .backdrop{opacity:var(--shade-o)}
   .panel{
-    width:100%;max-width:520px;background:var(--bg);border-radius:26px 26px 0 0;
+    position:relative;width:100%;max-width:520px;background:var(--bg);border-radius:26px 26px 0 0;
     padding:22px 18px calc(22px + env(safe-area-inset-bottom,0px));
     display:flex;flex-direction:column;gap:18px;
     transform:translateY(100%);transition:transform .35s cubic-bezier(.3,1,.4,1),background .35s;
@@ -118,6 +142,71 @@
   }
   .seg button.on{background:var(--text);color:var(--on-text)}
 
+  @media (hover:hover){
+    .ib:hover,#mic:not(.on):hover{filter:brightness(.95)}
+    select:hover{filter:brightness(.95)}
+    .seg button:not(.on):hover{color:var(--text)}
+  }
+
+  /* компьютер: приложение в центре как карточка */
+  @media (min-width:700px) and (min-height:560px){
+    html,body{background:var(--page)}
+    body{display:grid;place-items:center}
+    main{
+      width:480px;max-width:none;height:min(calc(100dvh - 48px),820px);margin:0;
+      background:var(--bg);border-radius:32px;padding:24px 28px 18px;
+      box-shadow:0 24px 70px rgba(0,0,0,.14);transition:background .35s,box-shadow .35s;
+    }
+    #sheet{align-items:center}
+    .panel{
+      max-width:400px;border-radius:26px;padding:26px 24px;
+      opacity:0;transform:translateY(16px) scale(.97);
+      transition:transform .3s cubic-bezier(.3,1,.4,1),opacity .25s,background .35s;
+    }
+    #sheet.open .panel{opacity:1;transform:none}
+  }
+
+  /* широкий компьютер: две колонки */
+  @media (min-width:900px) and (min-height:560px){
+    main{
+      width:min(1000px,calc(100vw - 64px));height:min(calc(100dvh - 64px),700px);padding:36px 44px 32px;
+      display:grid;grid-template-columns:260px 1fr;grid-template-rows:auto 1fr auto;column-gap:48px;
+      border-radius:36px;
+    }
+    header{grid-column:1;grid-row:1;margin:0}
+    .sp,#gear{display:none}
+    #preset{flex:1;max-width:none;height:46px;font-size:17px;border-radius:14px;padding:0 34px 0 16px}
+    #sheet,#sheet.open{
+      position:static;display:block;visibility:visible;transition:none;
+      grid-column:1;grid-row:2;align-self:start;margin-top:32px;
+    }
+    .backdrop{display:none}
+    #sheet .panel,#sheet.open .panel{
+      width:auto;max-width:none;background:none;padding:0;border-radius:0;gap:24px;opacity:1;transform:none;
+    }
+    .set{flex-direction:column;align-items:stretch;gap:10px}
+    .set span{color:var(--muted);font-size:14px}
+    .seg button{flex:1;height:44px}
+    #rows{grid-column:2;grid-row:1 / 3;gap:calc(var(--g,16px) * 1.5)}
+    .row{max-height:76px;grid-template-columns:28px 96px 1fr 72px;gap:18px}
+    .num{font-size:18px}
+    .note{
+      width:96px;height:44px;font-size:18px;border-radius:12px;padding:0 24px 0 14px;
+      background-position:calc(100% - 17px) 50%,calc(100% - 11px) 50%;background-size:6px 6px,6px 6px;
+    }
+    .track{height:14px;border-radius:7px;margin:0 14px}
+    .zone{top:-10px;bottom:-10px;border-radius:10px}
+    .mid{top:-6px;bottom:-6px}
+    .thumb{width:30px;height:30px;margin:-15px 0 0 -15px}
+    .hint{font-size:28px}
+    .cents{font-size:13px}
+    .dock{grid-column:1;grid-row:3;align-self:end;justify-content:flex-start;padding:0}
+    #msg{text-align:left}
+    #mic{width:76px;height:76px}
+    #mic svg{width:32px;height:32px}
+    .ad{grid-column:2;grid-row:3;height:90px;margin:0}
+  }
+
   select:focus-visible,button:focus-visible{outline:2px solid var(--muted);outline-offset:2px}
   @media (prefers-reduced-motion:reduce){
     *,*::after{animation:none!important;transition-duration:.01ms!important}
@@ -126,6 +215,8 @@
 </head>
 <body>
 <main>
+  <h1 class="sr">Гитарный тюнер онлайн</h1>
+  <p class="sr">Бесплатный тюнер для настройки гитары через микрофон. Поддерживает 6, 7 и 8 струн и популярные строи: стандартный EADGBE, Drop D, DADGAD, Open G, Open D и другие. Включи микрофон, сыграй открытую струну, и тюнер покажет, нужно ли её подтянуть или ослабить.</p>
   <header>
     <select id="preset" aria-label="Строй"></select>
     <div class="sp"></div>
@@ -159,9 +250,12 @@
       </svg>
     </button>
   </div>
-</main>
+
+  <!-- Место под рекламу: вставь код рекламной сети внутрь этого div -->
+  <div class="ad" id="ad" aria-hidden="true"></div>
 
 <div id="sheet">
+  <div class="backdrop"></div>
   <div class="panel">
     <div class="set"><span>Струны</span>
       <div class="seg" id="segCount"><button data-v="6">6</button><button data-v="7">7</button><button data-v="8">8</button></div>
@@ -169,8 +263,10 @@
     <div class="set"><span>Строи</span>
       <div class="seg" id="segLabels"><button data-v="letters">EADGBE</button><button data-v="names">Имена</button></div>
     </div>
+    <a class="more" href="stroi.html">Справка по строям</a>
   </div>
 </div>
+</main>
 
 <script>
 (function(){
@@ -230,6 +326,8 @@
     var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     root.setAttribute('data-theme', next);
     put('tuner.theme', next);
+    var m = document.querySelector('meta[name=theme-color]');
+    if (m) m.setAttribute('content', next === 'dark' ? '#0f1115' : '#f4f4f5');
   });
 
   // ---------- State ----------
@@ -280,6 +378,7 @@
   function buildRows(){
     rowsEl.innerHTML = '';
     rows = [];
+    rowsEl.style.setProperty('--g', ({6: 16, 7: 10, 8: 4})[count] + 'px');
     targets.forEach(function(t, i){
       var el = document.createElement('div');
       el.className = 'row';
@@ -337,7 +436,7 @@
     gear.classList.toggle('open', open);
   }
   gear.addEventListener('click', function(){ toggleSheet(!sheet.classList.contains('open')); });
-  sheet.addEventListener('click', function(e){ if (e.target === sheet) toggleSheet(false); });
+  sheet.addEventListener('click', function(e){ if (e.target === sheet || e.target.classList.contains('backdrop')) toggleSheet(false); });
 
   segCount.addEventListener('click', function(e){
     var v = parseInt(e.target.getAttribute('data-v'), 10);
@@ -386,7 +485,7 @@
   }
 
   // ---------- Audio ----------
-  var ctx = null, analyser, buf, stream = null, timer = null, busy = false;
+  var ctx = null, analyser, buf, stream = null, timer = null, busy = false, wake = null;
   var lastHeard = 0, prevRow = -1, smooth = 0;
 
   function tick(){
@@ -422,6 +521,7 @@
     if (timer){ clearInterval(timer); timer = null; }
     if (stream){ stream.getTracks().forEach(function(t){ t.stop(); }); stream = null; }
     if (ctx){ try { ctx.close(); } catch(e) {} ctx = null; }
+    if (wake){ try { wake.release(); } catch(e) {} wake = null; }
     prevRow = -1;
     rows.forEach(idleRow);
     setOn(false);
@@ -438,6 +538,8 @@
     }).then(function(s){
       stream = s;
       ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') ctx.resume();
+      if (navigator.wakeLock){ navigator.wakeLock.request('screen').then(function(w){ wake = w; }).catch(function(){}); }
       var src = ctx.createMediaStreamSource(s);
       analyser = ctx.createAnalyser();
       analyser.fftSize = 4096;
@@ -458,7 +560,26 @@
     if (stream) stop(); else start();
   });
 
+  document.addEventListener('visibilitychange', function(){ if (document.hidden && stream) stop(); });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') toggleSheet(false);
+    if (e.code === 'Space' && !/^(SELECT|BUTTON)$/.test(e.target.tagName)){ e.preventDefault(); micBtn.click(); }
+  });
+
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
+    window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+  }
+
   // ---------- Init ----------
+  var q = null;
+  try { q = new URLSearchParams(location.search).get('t'); } catch(e) {}
+  if (q){
+    [6, 7, 8].forEach(function(c){
+      DATA[c].forEach(function(p){
+        if (letters(p[1]) === q){ count = c; put('tuner.count', c); put('tuner.targets.' + c, JSON.stringify(p[1])); }
+      });
+    });
+  }
   targets = loadTargets();
   buildPreset(); buildRows(); syncPreset();
   markSeg(segCount, count); markSeg(segLabels, labelMode);
