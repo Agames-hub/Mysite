@@ -81,10 +81,18 @@
     flex:1 1 0;min-height:0;max-height:56px;display:grid;grid-template-columns:22px 58px 1fr 34px;
     gap:8px;align-items:center;
   }
-  .num{text-align:center;color:var(--muted);font-size:14px;font-weight:600}
+  .num{text-align:center;color:var(--muted);font-size:14px;font-weight:600;background:none;border:0;padding:0;font-family:inherit;cursor:pointer}
+  .num:active{color:var(--text)}
   .note{font-size:14px;width:58px;height:30px;padding:0 16px 0 8px;border-radius:10px;background-position:calc(100% - 10px) 50%,calc(100% - 6px) 50%}
 
-  .track{position:relative;height:10px;margin:0 10px;border-radius:5px;background:var(--field);transition:background-color .35s}
+  .track{position:relative;height:10px;margin:0 10px;border-radius:5px;background:var(--field);transition:background-color .35s;cursor:pointer}
+  .track::after{content:"";position:absolute;inset:-14px -10px}
+  .track.pl{animation:wob .9s ease-out}
+  @keyframes wob{
+    0%{transform:scaleY(1);background:var(--muted)}8%{transform:scaleY(2.4)}20%{transform:scaleY(.4)}
+    32%{transform:scaleY(1.8)}46%{transform:scaleY(.7)}62%{transform:scaleY(1.3)}80%{transform:scaleY(.92)}
+    100%{transform:scaleY(1);background:var(--field)}
+  }
   .zone{position:absolute;left:44%;width:12%;top:-6px;bottom:-6px;border-radius:8px;background:var(--okbg)}
   .mid{position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--muted);opacity:.4;border-radius:2px}
   .thumb{
@@ -170,7 +178,7 @@
   @media (min-width:900px) and (min-height:560px){
     main{
       width:min(1000px,calc(100vw - 64px));height:min(calc(100dvh - 64px),700px);padding:36px 44px 32px;
-      display:grid;grid-template-columns:260px 1fr;grid-template-rows:auto 1fr auto;column-gap:48px;
+      display:grid;grid-template-columns:290px 1fr;grid-template-rows:auto 1fr auto;column-gap:48px;
       border-radius:36px;
     }
     header{grid-column:1;grid-row:1;margin:0}
@@ -207,6 +215,111 @@
     .ad{grid-column:2;grid-row:3;height:90px;margin:0}
   }
 
+  /* метроном */
+  #metBtn.playing{background:var(--ok);color:#06120a}
+  #met{position:fixed;inset:0;z-index:5;display:flex;align-items:flex-end;justify-content:center;
+    visibility:hidden;transition:visibility 0s .3s}
+  #met.open{visibility:visible;transition:none}
+  .mbd{position:absolute;inset:0;background:#000;opacity:0;transition:opacity .3s;will-change:opacity}
+  #met.open .mbd{opacity:var(--shade-o)}
+  .mpanel{
+    position:relative;width:100%;max-width:520px;max-height:94dvh;overflow-y:auto;background:var(--bg);
+    border-radius:26px 26px 0 0;padding:14px 18px calc(18px + env(safe-area-inset-bottom,0px));
+    display:flex;flex-direction:column;gap:14px;
+    transform:translateY(100%);transition:transform .35s cubic-bezier(.3,1,.4,1),background .35s;
+  }
+  #met.open .mpanel{transform:none}
+  .mtop{display:flex;align-items:center;justify-content:space-between}
+  .mtop h2{margin:0;font-size:18px;font-weight:700}
+
+  .bpmrow{display:flex;align-items:center;justify-content:space-between}
+  .rb{
+    width:52px;height:52px;border-radius:50%;border:0;background:var(--field);color:var(--text);
+    font:inherit;font-size:28px;font-weight:500;line-height:1;cursor:pointer;padding:0;
+    display:grid;place-items:center;transition:transform .15s,background .35s;
+    user-select:none;-webkit-user-select:none;touch-action:manipulation;
+  }
+  .rb:active{transform:scale(.9)}
+  .bpmv{display:flex;flex-direction:column;align-items:center;line-height:1}
+  .bpmv b{font-size:60px;font-weight:700;font-variant-numeric:tabular-nums}
+
+  #bpmRange{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:0;cursor:pointer}
+  #bpmRange::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:var(--field)}
+  #bpmRange::-moz-range-track{height:8px;border-radius:4px;background:var(--field)}
+  #bpmRange::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--text);border:0;margin-top:-8px}
+  #bpmRange::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:var(--text);border:0}
+
+  #balls{display:flex;flex-wrap:wrap;justify-content:center;gap:12px 10px;padding-top:4px}
+  .mb{display:flex;flex-direction:column;align-items:center;gap:6px;width:44px}
+  .ball{
+    width:44px;height:44px;border-radius:50%;border:2px solid transparent;padding:0;font:inherit;font-size:15px;font-weight:700;
+    cursor:pointer;display:grid;place-items:center;touch-action:manipulation;
+    transition:transform .12s,background .12s,color .12s,border-color .12s;
+  }
+  .ball.s2{background:var(--text);color:var(--on-text)}
+  .ball.s1{background:var(--field);color:var(--text)}
+  .ball.s0{background:transparent;color:var(--muted);border:2px dashed var(--muted)}
+  .ball.cur{background:var(--ok);color:#06120a;border-color:transparent;transform:scale(1.14)}
+  .ball.s2.cur{transform:scale(1.24)}
+  .ball.s0.cur{background:transparent;color:var(--ok);border:2px dashed var(--ok)}
+  .subs{display:flex;gap:3px;height:6px}
+  .sd{width:6px;height:6px;border-radius:50%;background:var(--muted);opacity:.4;transition:background .1s,opacity .1s,transform .1s}
+  .sd.rest{background:transparent;box-shadow:inset 0 0 0 1.5px var(--muted)}
+  .sd.on{background:var(--ok);box-shadow:none;opacity:1;transform:scale(1.35)}
+  .legend{display:flex;justify-content:center;gap:18px;color:var(--muted);font-size:12px;font-weight:600}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .lg{width:12px;height:12px;border-radius:50%}
+  .lg.s2{background:var(--text)}
+  .lg.s1{background:var(--field);box-shadow:inset 0 0 0 1px var(--muted)}
+  .lg.s0{border:1.5px dashed var(--muted)}
+
+  .rhy{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .chip{
+    display:flex;flex-direction:column;align-items:center;gap:6px;padding:9px 4px 8px;border:0;border-radius:12px;
+    background:var(--field);color:var(--text);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;
+    transition:background .2s,color .2s;touch-action:manipulation;
+  }
+  .chip.on{background:var(--text);color:var(--on-text)}
+  .cds{display:flex;gap:3px;height:6px}
+  .cd{width:6px;height:6px;border-radius:50%;background:currentColor}
+  .cd.rest{background:transparent;box-shadow:inset 0 0 0 1.5px currentColor;opacity:.55}
+
+  .mbot{display:flex;align-items:center;gap:12px}
+  .mbot .ctl{flex:none}
+  .ctl{display:flex;align-items:center;background:var(--field);border-radius:16px;padding:3px;height:46px}
+  .sb{width:38px;height:40px;border:0;border-radius:13px;background:transparent;color:var(--text);
+    font:inherit;font-size:22px;cursor:pointer;padding:0;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+  .sb:active{background:var(--bg)}
+  .sv{min-width:28px;text-align:center;font-weight:700;font-size:17px;font-variant-numeric:tabular-nums}
+  #metPlay{
+    flex:1;height:56px;border-radius:28px;border:0;background:var(--text);color:var(--on-text);cursor:pointer;padding:0;
+    display:flex;align-items:center;justify-content:center;gap:8px;font:inherit;font-size:17px;font-weight:700;
+    transition:background .25s,color .25s,transform .2s;
+  }
+  #metPlay:active{transform:scale(.97)}
+  #metPlay svg{width:24px;height:24px}
+  #metPlay .st{display:none}
+  #metPlay.on{background:var(--ok);color:#06120a}
+  #metPlay.on .st{display:block}
+  #metPlay.on .pl{display:none}
+
+  @media (hover:hover){
+    .rb:hover,.chip:not(.on):hover,#metPlay:not(.on):hover{filter:brightness(.92)}
+  }
+  @media (min-width:700px) and (min-height:560px){
+    #met{align-items:center}
+    .mpanel{
+      max-width:420px;border-radius:26px;padding:22px 24px;
+      opacity:0;transform:translateY(16px) scale(.97);
+      transition:transform .3s cubic-bezier(.3,1,.4,1),opacity .25s,background .35s;
+    }
+    #met.open .mpanel{opacity:1;transform:none}
+  }
+  @media (max-height:640px){
+    .bpmv b{font-size:46px}
+    .mpanel{gap:10px}
+  }
+
   select:focus-visible,button:focus-visible{outline:2px solid var(--muted);outline-offset:2px}
   @media (prefers-reduced-motion:reduce){
     *,*::after{animation:none!important;transition-duration:.01ms!important}
@@ -216,10 +329,17 @@
 <body>
 <main>
   <h1 class="sr">Гитарный тюнер онлайн</h1>
-  <p class="sr">Бесплатный тюнер для настройки гитары через микрофон. Поддерживает 6, 7 и 8 струн и популярные строи: стандартный EADGBE, Drop D, DADGAD, Open G, Open D и другие. Включи микрофон, сыграй открытую струну, и тюнер покажет, нужно ли её подтянуть или ослабить.</p>
+  <p class="sr">Бесплатный тюнер для настройки гитары через микрофон. Поддерживает 6, 7 и 8 струн и популярные строи: стандартный EADGBE, Drop D, DADGAD, Open G, Open D и другие. Включи микрофон, сыграй открытую струну, и тюнер покажет, нужно ли её подтянуть или ослабить. Рядом есть метроном с разными ритмами и размерами.</p>
   <header>
     <select id="preset" aria-label="Строй"></select>
     <div class="sp"></div>
+    <button id="metBtn" class="ib" aria-label="Метроном">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 3h6l4 18H5z"/>
+        <path d="M12 17l3.5-9"/>
+        <circle cx="14.2" cy="11.6" r="1.4" fill="currentColor"/>
+      </svg>
+    </button>
     <button id="gear" class="ib" aria-label="Настройки">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <path d="M4 7h9M19 7h1M4 17h1M11 17h9"/>
@@ -264,6 +384,33 @@
       <div class="seg" id="segLabels"><button data-v="letters">EADGBE</button><button data-v="names">Имена</button></div>
     </div>
     <a class="more" href="stroi.html">Справка по строям</a>
+  </div>
+</div>
+<div id="met" role="dialog" aria-label="Метроном">
+  <div class="mbd"></div>
+  <div class="mpanel">
+    <div class="mtop">
+      <h2>Метроном</h2>
+      <button id="metClose" class="ib" aria-label="Закрыть">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="bpmrow">
+      <button class="rb" id="bpmDn" aria-label="Медленнее">&minus;</button>
+      <div class="bpmv"><b id="bpmNum">100</b></div>
+      <button class="rb" id="bpmUp" aria-label="Быстрее">+</button>
+    </div>
+    <input type="range" id="bpmRange" min="30" max="300" step="1" aria-label="Темп, уд/мин">
+    <div id="balls"></div>
+    <div class="legend" aria-hidden="true"><span><i class="lg s2"></i>акцент</span><span><i class="lg s1"></i>обычный</span><span><i class="lg s0"></i>тишина</span></div>
+    <div class="rhy" id="rhy"></div>
+    <div class="mbot">
+      <div class="ctl" title="Ударов в такте"><button class="sb" id="bDn" aria-label="Меньше ударов">&minus;</button><span class="sv" id="bNum">4</span><button class="sb" id="bUp" aria-label="Больше ударов">+</button></div>
+      <button id="metPlay" aria-label="Старт" aria-pressed="false">
+        <svg viewBox="0 0 24 24"><path class="pl" d="M8 5.5v13l11-6.5z" fill="currentColor"/><rect class="st" x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor"/></svg>
+        <span id="metPlayTxt">Старт</span>
+      </button>
+    </div>
   </div>
 </div>
 </main>
@@ -383,7 +530,7 @@
       var el = document.createElement('div');
       el.className = 'row';
       el.innerHTML =
-        '<span class="num">' + (count - i) + '</span>' +
+        '<button class="num" aria-label="Сыграть струну ' + (count - i) + '">' + (count - i) + '</button>' +
         '<select class="note" aria-label="Нота струны ' + (count - i) + '"></select>' +
         '<div class="track"><div class="zone"></div><div class="mid"></div><div class="thumb"></div></div>' +
         '<div class="status"><span class="hint"></span><span class="cents"></span></div>';
@@ -394,16 +541,79 @@
       sel.value = t;
       sel.addEventListener('change', function(){
         targets[i] = parseInt(sel.value, 10);
-        syncPreset(); save();
+        syncPreset(); save(); pluckRow(i);
       });
+      el.querySelector('.num').addEventListener('click', function(){ pluckRow(i); });
+      el.querySelector('.track').addEventListener('click', function(){ pluckRow(i); });
       rowsEl.appendChild(el);
       rows.push({
         el: el, select: sel,
+        track: el.querySelector('.track'),
         thumb: el.querySelector('.thumb'),
         hint: el.querySelector('.hint'),
         cents: el.querySelector('.cents')
       });
     });
+  }
+
+  // ---------- Звук струны (Karplus–Strong) ----------
+  var pctx = null;
+  function pluck(m){
+    if (!pctx){
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      pctx = new AC();
+    }
+    if (pctx.state === 'suspended') pctx.resume();
+    var sr = pctx.sampleRate, f = freq(m), i, n;
+    var T = Math.max(2.2, Math.min(4.5, 5 - f / 200));            // время звучания, с
+    var len = Math.floor(sr * (T + 0.4));
+    var P = sr / f - 0.5, L = Math.floor(P), fr = P - L;           // длина струны в отсчётах
+    var C = (1 - fr) / (1 + fr);                                    // all-pass для точной настройки
+
+    // возбуждение: мягкий шум, выщипывание на 16% длины струны
+    var raw = new Float32Array(L), prev = 0, mean = 0;
+    var al = Math.max(0.12, Math.min(0.55, f / 450));            // у басов шум глушим сильнее
+    for (i = 0; i < L; i++){ prev += al * ((Math.random() * 2 - 1) - prev); raw[i] = prev; mean += prev; }
+    mean /= L;
+    var k = Math.max(1, Math.round(L * 0.16)), line = new Float32Array(L);
+    for (i = 0; i < L; i++) line[i] = (raw[i] - mean) - (i >= k ? 0.9 * (raw[i - k] - mean) : 0);
+
+    var decay = Math.pow(0.04, 1 / (T * f));
+    var out = new Float32Array(len), ptr = 0, last = 0, apX = 0, apY = 0, peak = 0;
+    for (n = 0; n < len; n++){
+      var cur = line[ptr];
+      var fb = decay * 0.5 * (cur + last); last = cur;
+      var ap = C * fb + apX - C * apY; apX = fb; apY = ap;
+      line[ptr] = ap;
+      ptr = (ptr + 1 === L) ? 0 : ptr + 1;
+      out[n] = cur;
+      if (n < sr * 0.15 && Math.abs(cur) > peak) peak = Math.abs(cur);
+    }
+    var g = peak > 0 ? 0.5 / peak : 1, fade = Math.floor(sr * 0.4), atk = Math.floor(sr * 0.006);
+    for (n = 0; n < len; n++){
+      out[n] *= g;
+      if (n < atk) out[n] *= n / atk;                              // мягкая атака, без щелчка
+      if (n > len - fade) out[n] *= (len - n) / fade;
+    }
+
+    var ab = pctx.createBuffer(1, len, sr);
+    ab.getChannelData(0).set(out);
+    var src = pctx.createBufferSource(); src.buffer = ab;
+    // резонанс корпуса гитары
+    var b1 = pctx.createBiquadFilter(); b1.type = 'peaking'; b1.frequency.value = 105; b1.Q.value = 1.5; b1.gain.value = 3;
+    var b2 = pctx.createBiquadFilter(); b2.type = 'peaking'; b2.frequency.value = 215; b2.Q.value = 2;   b2.gain.value = 2;
+    var lp = pctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = Math.max(1800, Math.min(6500, f * 14));
+    var vol = pctx.createGain(); vol.gain.value = 0.9;
+    var lim = pctx.createDynamicsCompressor(); lim.threshold.value = -12; lim.knee.value = 12; lim.ratio.value = 6;
+    src.connect(b1); b1.connect(b2); b2.connect(lp); lp.connect(vol); vol.connect(lim); lim.connect(pctx.destination);
+    src.onended = function(){ try { lim.disconnect(); } catch(e) {} };
+    src.start();
+  }
+  function pluckRow(i){
+    pluck(targets[i]);
+    var t = rows[i] && rows[i].track;
+    if (t){ t.classList.remove('pl'); void t.offsetWidth; t.classList.add('pl'); }
   }
 
   function showRow(r, cents){
@@ -532,6 +742,7 @@
       msgEl.textContent = 'Нужен https://';
       return;
     }
+    metStop();
     busy = true;
     navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
@@ -560,15 +771,220 @@
     if (stream) stop(); else start();
   });
 
-  document.addEventListener('visibilitychange', function(){ if (document.hidden && stream) stop(); });
+  document.addEventListener('visibilitychange', function(){ if (document.hidden){ if (stream) stop(); metStop(); } });
   document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape') toggleSheet(false);
-    if (e.code === 'Space' && !/^(SELECT|BUTTON)$/.test(e.target.tagName)){ e.preventDefault(); micBtn.click(); }
+    if (e.key === 'Escape'){ toggleSheet(false); toggleMet(false); }
+    if (e.code === 'Space' && !/^(SELECT|BUTTON)$/.test(e.target.tagName)){
+      e.preventDefault();
+      if (met.classList.contains('open')) metPlayBtn.click(); else micBtn.click();
+    }
   });
 
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
     window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
   }
+
+  // ---------- Metronome ----------
+  var RH = [
+    ['Четверти',     [1]],
+    ['Восьмые',      [1,1]],
+    ['Триоли',       [1,1,1]],
+    ['Шестнадцатые', [1,1,1,1]],
+    ['Шафл',         [1,0,1]],
+    ['Галоп',        [1,0,1,1]],
+    ['Обр. галоп',   [1,1,1,0]],
+    ['Синкопа',      [1,1,0,1]],
+    ['Офф-бит',      [0,1]]
+  ];
+  function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+  var met = document.getElementById('met');
+  var metBtn = document.getElementById('metBtn');
+  var metPlayBtn = document.getElementById('metPlay');
+  var ballsEl = document.getElementById('balls');
+  var rhyEl = document.getElementById('rhy');
+  var bpmNum = document.getElementById('bpmNum');
+  var bpmRange = document.getElementById('bpmRange');
+  var bNum = document.getElementById('bNum');
+
+  var M = {
+    bpm: clamp(parseInt(get('tuner.met.bpm'), 10) || 100, 30, 300),
+    beats: clamp(parseInt(get('tuner.met.beats'), 10) || 4, 1, 12),
+    rhythm: parseInt(get('tuner.met.rhythm'), 10) || 0,
+    acc: []   // по каждому удару: 2 — акцент, 1 — обычный, 0 — тишина
+  };
+  if (!RH[M.rhythm]) M.rhythm = 0;
+  try {
+    var sa = JSON.parse(get('tuner.met.acc'));
+    if (Array.isArray(sa)) M.acc = sa.filter(function(x){ return x === 0 || x === 1 || x === 2; }).slice(0, 12);
+  } catch(e) {}
+  while (M.acc.length < 12) M.acc.push(M.acc.length === 0 ? 2 : 1);
+
+  var ballEls = [], dotEls = [];
+  var mac = null, playing = false, sched = null, raf = 0, mwake = null;
+  var nextT = 0, bi = 0, si = 0, curR = 0, queue = [];
+
+  function setBpm(v){
+    M.bpm = clamp(Math.round(v), 30, 300);
+    bpmNum.textContent = M.bpm;
+    bpmRange.value = M.bpm;
+    put('tuner.met.bpm', M.bpm);
+  }
+  function setBeats(v){
+    M.beats = clamp(v, 1, 12);
+    bNum.textContent = M.beats;
+    put('tuner.met.beats', M.beats);
+    buildBalls();
+  }
+
+  function buildBalls(){
+    ballsEl.innerHTML = '';
+    ballEls = []; dotEls = [];
+    var p = RH[M.rhythm][1];
+    for (var i = 0; i < M.beats; i++){
+      (function(i){
+        var w = document.createElement('div'); w.className = 'mb';
+        var b = document.createElement('button');
+        b.className = 'ball s' + M.acc[i];
+        b.textContent = i + 1;
+        b.setAttribute('aria-label', 'Удар ' + (i + 1));
+        b.addEventListener('click', function(){
+          M.acc[i] = (M.acc[i] + 2) % 3;
+          b.classList.remove('s0', 's1', 's2');
+          b.classList.add('s' + M.acc[i]);
+          put('tuner.met.acc', JSON.stringify(M.acc));
+        });
+        var sub = document.createElement('div'); sub.className = 'subs';
+        var ds = [];
+        p.forEach(function(on){
+          var d = document.createElement('i'); d.className = 'sd' + (on ? '' : ' rest');
+          sub.appendChild(d); ds.push(d);
+        });
+        w.appendChild(b); w.appendChild(sub);
+        ballsEl.appendChild(w);
+        ballEls.push(b); dotEls.push(ds);
+      })(i);
+    }
+  }
+
+  function buildRhythms(){
+    RH.forEach(function(r, i){
+      var c = document.createElement('button'); c.className = 'chip'; c.setAttribute('data-i', i);
+      var dots = r[1].map(function(on){ return '<i class="cd' + (on ? '' : ' rest') + '"></i>'; }).join('');
+      c.innerHTML = '<span>' + r[0] + '</span><span class="cds">' + dots + '</span>';
+      rhyEl.appendChild(c);
+    });
+  }
+  function markRhythm(){
+    Array.prototype.forEach.call(rhyEl.children, function(c){
+      c.classList.toggle('on', c.getAttribute('data-i') === String(M.rhythm));
+    });
+  }
+  rhyEl.addEventListener('click', function(e){
+    var c = e.target.closest ? e.target.closest('.chip') : null;
+    if (!c) return;
+    M.rhythm = parseInt(c.getAttribute('data-i'), 10);
+    put('tuner.met.rhythm', M.rhythm);
+    markRhythm(); buildBalls();
+  });
+
+  function onClick(id, fn){ document.getElementById(id).addEventListener('click', fn); }
+  onClick('bpmDn', function(){ setBpm(M.bpm - 1); });
+  onClick('bpmUp', function(){ setBpm(M.bpm + 1); });
+  onClick('bDn', function(){ setBeats(M.beats - 1); });
+  onClick('bUp', function(){ setBeats(M.beats + 1); });
+  bpmRange.addEventListener('input', function(){ setBpm(parseFloat(bpmRange.value)); });
+
+  // звук щелчка: 2 — акцент, 1 — обычный, 0 — доля ритма
+  function click(t, kind){
+    var o = mac.createOscillator(), g = mac.createGain();
+    o.type = 'triangle';
+    o.frequency.value = kind === 2 ? 1600 : kind === 1 ? 1100 : 800;
+    var v = kind === 2 ? 0.9 : kind === 1 ? 0.65 : 0.32;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(v, t + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+    o.connect(g); g.connect(mac.destination);
+    o.start(t); o.stop(t + 0.08);
+  }
+
+  function schedule(){
+    if (nextT < mac.currentTime) nextT = mac.currentTime + 0.05;
+    var lim = mac.currentTime + 0.15;
+    while (nextT < lim){
+      var p = RH[curR][1];
+      if (bi >= M.beats) bi = 0;
+      var a = M.acc[bi];
+      if (p[si] && a) click(nextT, si === p.indexOf(1) ? a : 0);
+      queue.push({ t: nextT, b: bi, s: si, r: curR });
+      nextT += 60 / M.bpm / p.length;
+      if (++si >= p.length){ si = 0; bi = (bi + 1) % M.beats; curR = M.rhythm; }
+    }
+  }
+
+  function flash(e){
+    if (e.s === 0){
+      ballEls.forEach(function(b){ b.classList.remove('cur'); });
+      dotEls.forEach(function(ds){ ds.forEach(function(d){ d.classList.remove('on'); }); });
+      if (ballEls[e.b]) ballEls[e.b].classList.add('cur');
+    }
+    var ds = dotEls[e.b];
+    if (ds && e.r === M.rhythm){
+      ds.forEach(function(d){ d.classList.remove('on'); });
+      if (RH[e.r][1][e.s] && ds[e.s]) ds[e.s].classList.add('on');
+    }
+  }
+  function frame(){
+    var now = mac.currentTime - (mac.outputLatency || 0);
+    while (queue.length && queue[0].t <= now) flash(queue.shift());
+    raf = requestAnimationFrame(frame);
+  }
+
+  function metUi(on){
+    metPlayBtn.classList.toggle('on', on);
+    metPlayBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    metPlayBtn.setAttribute('aria-label', on ? 'Стоп' : 'Старт');
+    document.getElementById('metPlayTxt').textContent = on ? 'Стоп' : 'Старт';
+    metBtn.classList.toggle('playing', on);
+  }
+  function metStop(){
+    if (!playing) return;
+    playing = false;
+    clearInterval(sched); cancelAnimationFrame(raf); queue = [];
+    if (mac){ try { mac.close(); } catch(e) {} mac = null; }
+    if (mwake){ try { mwake.release(); } catch(e) {} mwake = null; }
+    ballEls.forEach(function(b){ b.classList.remove('cur'); });
+    dotEls.forEach(function(ds){ ds.forEach(function(d){ d.classList.remove('on'); }); });
+    metUi(false);
+  }
+  function metStart(){
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (stream) stop();               // микрофон тюнера услышал бы щелчки
+    mac = new AC();
+    if (mac.state === 'suspended') mac.resume();
+    if (navigator.wakeLock){ navigator.wakeLock.request('screen').then(function(w){ mwake = w; }).catch(function(){}); }
+    playing = true; bi = 0; si = 0; curR = M.rhythm; queue = [];
+    nextT = mac.currentTime + 0.06;
+    schedule();
+    sched = setInterval(schedule, 25);
+    raf = requestAnimationFrame(frame);
+    metUi(true);
+  }
+  metPlayBtn.addEventListener('click', function(){ if (playing) metStop(); else metStart(); });
+
+  function toggleMet(open){
+    met.classList.toggle('open', open);
+    if (open) toggleSheet(false);
+  }
+  metBtn.addEventListener('click', function(){ toggleMet(!met.classList.contains('open')); });
+  document.getElementById('metClose').addEventListener('click', function(){ toggleMet(false); });
+  met.querySelector('.mbd').addEventListener('click', function(){ toggleMet(false); });
+
+  buildRhythms(); markRhythm();
+  bNum.textContent = M.beats;
+  setBpm(M.bpm);
+  buildBalls();
 
   // ---------- Init ----------
   var q = null;

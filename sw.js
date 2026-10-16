@@ -1,4 +1,4 @@
-var CACHE = 'tuner-v2';
+var CACHE = 'tuner-v5';
 var FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'stroi.html', 'stroj-standartnyj.html', 'stroj-drop-d.html', 'stroj-polutona-vniz.html', 'stroj-ton-vniz.html', 'stroj-drop-c.html', 'stroj-dadgad.html', 'stroj-dadfad.html', 'stroj-open-g.html', 'stroj-open-d.html', 'stroj-cgcgcd.html'];
 
 self.addEventListener('install', function(e){
